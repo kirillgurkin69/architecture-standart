@@ -1,0 +1,38 @@
+@startuml
+title Internet Bank Container Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(customer, "Клиент", "Пользуется интернет-банком для открытия депозитов")
+
+System(rate_system, "Система ведения ставок", "Клиент-серверная система на Java Spring + React.js")
+System(event_system, "Система управления событиями", "Java Spring + Kafka")
+System(auth_provider, "Сервер аутентификации", "Проверяет учетные данные пользователей (OAuth2, OIDC, AD и т.д.)")
+
+Container_Boundary(internet_bank, "Интернет банк") {
+  Container(webApp, "Веб-приложение", "ASP.NET MVC 4.5", "Позволяет клиентам управлять счетами и платежами через браузер. Пользователь должен быть авторизован.")
+
+  Container(apiApp, "API-приложение", "ASP.NET Web API", "Обрабатывает запросы от веб-приложения, реализует бизнес-логику. Требует авторизации.")
+
+  ContainerDb(database, "База данных", "MS SQL Server", "Хранит информацию о клиентах, счетах, операциях и платежах. Доступ только из защищённой сети.")
+
+  Container(rateIntegration, "Модуль интеграции ставок", "C# сервис", "Получает и обрабатывает ставки по депозитам из системы ведения ставок")
+
+  Container(kafkaAdapter, "Kafka адаптер", "C# сервис", "Публикует и потребляет события в Kafka через шифрованное соединение")
+
+
+}
+
+' Взаимодействия
+Rel(customer, auth_provider, "Аутентификация", "HTTPS (OAuth2 / OIDC)")
+Rel(customer, webApp, "Использует", "HTTPS (TLS)")
+Rel(webApp, apiApp, "Отправляет запросы", "HTTPS (с токеном)")
+Rel(apiApp, database, "Читает и записывает", "TDS/SQL (внутренняя сеть)")
+Rel(apiApp, rateIntegration, "Запрашивает ставки")
+Rel(rateIntegration, rate_system, "Получает ставки", "HTTPS (TLS)")
+Rel(apiApp, kafkaAdapter, "Публикует события", "внутренний TLS")
+Rel(kafkaAdapter, event_system, "Публикует/читает события", "Kafka protocol over TLS")
+
+@enduml

@@ -14,7 +14,7 @@ System(web_site, "Сайт банка", "PHP + React.js")
 System(auth_provider, "Сервер аутентификации", "Проверяет учетные данные пользователей (OAuth2, OIDC, AD и т.д.)")
 
 ' Внешние системы
-System_Ext(call_center_ext, "Система кол-центра партнера")
+System_Ext(call_center_ext, "Кол-центра партнера")
 System_Ext(sms_gateway, "СМС шлюз телеком оператора")
 
 ' Новые системы
@@ -25,10 +25,7 @@ System(sms_service, "Сервис отправки sms", "Java Spring Boot")
 Rel(customer, web_site, "Просмотр актуальных ставок и подача заявки на депозит")
 Rel(web_site, rate_system, "Получение данных по актуальным ставкам")
 Rel(web_site, event_system, "Публикация события заявки на депозит")
-Rel(call_center, event_system, "Подписка на события заявки на депозит")
-Rel(call_center_ext, event_system, " Подписка на события заявки на депозит")
 Rel(callcenter_op, call_center, "Обработка заявок")
-Rel(callcenter_op, call_center_ext, "Обработка заявок")
 Rel(callcenter_op, customer, "Предложение условий новому клиенту и приглашение в офис")
 Rel(internet_bank, rate_system, "Получение данных по ставкам в том числе персональным")
 Rel(customer, internet_bank, "Подача заявки на открытие депозита")
@@ -40,5 +37,9 @@ Rel(cbs, event_system, "Подписка на событие подтвержд�
 Rel(backoffice, cbs, "Проводит открытие депозита в системе (на этапе MVP)")
 Rel(backoffice, rate_system, "Сотрудники бек-офиса заводят в системе актуальные общие и персональные ставки")
 Rel(internet_bank, auth_provider, "Аутентификация пользователей в системе")
+Rel(rate_system, event_system, "Публикация события обновления ставок")
+Rel(call_center, event_system, "Подписка на события обновления ставок, заявка на депозитд")
+Rel(rate_system, call_center_ext, "Отправка файла с ставками по e-mail")
+
 
 @enduml
