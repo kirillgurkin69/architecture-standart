@@ -38,7 +38,7 @@ Rel(backoffice, cbs, "Проводит открытие депозита в си
 Rel(backoffice, rate_system, "Сотрудники бек-офиса заводят в системе актуальные общие и персональные ставки")
 Rel(internet_bank, auth_provider, "Аутентификация пользователей в системе")
 Rel(rate_system, event_system, "Публикация события обновления ставок")
-Rel(call_center, event_system, "Подписка на события обновления ставок, заявка на депозитд")
+Rel(call_center, event_system, "Подписка на события обновления ставок, заявка на депозит")
 Rel(rate_system, call_center_ext, "Отправка файла с ставками по e-mail")
 
 

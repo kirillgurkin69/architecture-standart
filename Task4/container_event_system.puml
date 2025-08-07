@@ -1,0 +1,57 @@
+@startuml
+title  Event System Container Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+System(cbs, "АБС", "Автоматизированная банковская система")
+System(internet_bank, "Интернет банк", "Клиент-серверная система на веб-фреймворке ASP.NET")
+System(call_center, "Система кол-центра", "Клиент-серверная система на Java Spring + React.js")
+System(web_site, "Сайт банка", "PHP + React.js")
+System(auth_provider, "Сервер аутентификации", "Проверяет учетные данные пользователей (OAuth2, OIDC, AD и т.д.)")
+System(sms_service, "Сервис отправки sms", "Java Spring Boot")
+System(rate_system, "Система ведения ставок", "Клиент-серверная система на Java Spring + React.js")
+
+Container_Boundary(event_system, "Система управления событиями") {
+  Container(api, "Event API", "Spring Boot", "REST API для публикации событий от внешних систем (с аутентификацией и валидацией)")
+  Container(kafka, "Kafka Broker", "Apache Kafka", "Промежуточное хранилище событий и механизм pub-sub")
+  Container(streams, "Kafka Stream Processor", "Kafka Streams / Spring Cloud Stream", "Обработка, маршрутизация и агрегация событий")
+  Container(schema_registry, "Schema Registry", "Confluent Schema Registry", "Хранит схемы сообщений и обеспечивает совместимость")
+  Container(s3_store, "Event Store", "S3 Object Storage", "Долговременное хранилище событий в формате Avro/JSON/Parquet")
+  Container(kafka_connect, "Kafka Connect (Oracle Sink)", "Confluent Kafka Connect", "Подписка на события и запись в БД АБС через Oracle Sink Connector")
+  Container(kafka_ui, "Kafka UI (AKHQ)", "Java / Web", "Веб-интерфейс для просмотра топиков, сообщений, consumer-групп и Kafka Connect")
+}
+
+' Входящие взаимодействия
+Rel(internet_bank, api, "Публикация события открытия депозита (REST)")
+Rel(web_site, api, "Публикация события заявки (REST)")
+Rel(rate_system, api, "Публикация события обновления ставок (REST)")
+
+' Аутентификация
+Rel(api, auth_provider, "OAuth2 / OIDC проверка токена")
+
+' Взаимодействие с Kafka
+Rel(api, kafka, "Публикация события")
+Rel(kafka, streams, "События для обработки")
+Rel(streams, kafka, "Маршрутизация / перепубликация событий")
+
+' Schema Registry
+Rel(api, schema_registry, "Получение схемы (Avro/Protobuf)")
+Rel(streams, schema_registry, "Валидация / сериализация сообщений")
+
+' Аудит → S3
+Rel(streams, s3_store, "Сохранение агрегированных/обработанных событий (Avro/Parquet)")
+
+' Подписчики
+Rel(kafka, sms_service, "Подписка на событие открытия депозита")
+Rel(kafka, call_center, "Подписка на событие обновления ставок")
+
+' Kafka Connect → Oracle
+Rel(kafka_connect, kafka, "Подписка на события")
+Rel(kafka_connect, cbs, "Запись данных в Oracle через Sink Connector")
+
+' Kafka UI взаимодействия
+Rel(kafka_ui, kafka, "Чтение метаданных, топиков и сообщений")
+Rel(kafka_ui, kafka_connect, "Просмотр статуса коннекторов")
+Rel(kafka_ui, schema_registry, "Просмотр и проверка схем")
