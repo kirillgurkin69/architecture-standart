@@ -1,0 +1,44 @@
+@startuml
+!includeurl https://raw.githubusercontent.com/plantuml-stdlib/C4-PlantUML/master/C4_Context.puml
+
+' Персонажи
+Person(customer, "Клиент", "Пользуется сайтом и интернет-банком для открытия депозитов")
+Person(callcenter_op, "Оператор кол-центра", "Обрабатывает заявки клиентов")
+Person(backoffice, "Сотрудник бэк-офиса", "Обрабатывает заявки и подтверждает депозиты")
+
+' Существующие системы
+System(cbs, "АБС", "Автоматизированная банковская система")
+System(internet_bank, "Интернет банк", "Клиент-серверная система на веб-фреймворке ASP.NET")
+System(call_center, "Система кол-центра", "Клиент-серверная система на Java Spring + React.js")
+System(web_site, "Сайт банка", "PHP + React.js")
+System(auth_provider, "Сервер аутентификации", "Проверяет учетные данные пользователей (OAuth2, OIDC, AD и т.д.)")
+
+' Внешние системы
+System_Ext(call_center_ext, "Система кол-центра партнера")
+System_Ext(sms_gateway, "СМС шлюз телеком оператора")
+
+' Новые системы
+System(rate_system, "Система ведения ставок", "Клиент-серверная система на Java Spring + React.js")
+System(event_system, "Система управления событиями", "Java Spring + Kafka")
+System(sms_service, "Сервис отправки sms", "Java Spring Boot")
+
+Rel(customer, web_site, "Просмотр актуальных ставок и подача заявки на депозит")
+Rel(web_site, rate_system, "Получение данных по актуальным ставкам")
+Rel(web_site, event_system, "Публикация события заявки на депозит")
+Rel(call_center, event_system, "Подписка на события заявки на депозит")
+Rel(call_center_ext, event_system, " Подписка на события заявки на депозит")
+Rel(callcenter_op, call_center, "Обработка заявок")
+Rel(callcenter_op, call_center_ext, "Обработка заявок")
+Rel(callcenter_op, customer, "Предложение условий новому клиенту и приглашение в офис")
+Rel(internet_bank, rate_system, "Получение данных по ставкам в том числе персональным")
+Rel(customer, internet_bank, "Подача заявки на открытие депозита")
+Rel(internet_bank, event_system, "Публикация события на открытие депозита")
+Rel(sms_service, event_system, "Подписка на событие открытия депозита, публикация события подтверждения")
+Rel(sms_service, sms_gateway, "Отправка запроса на подтвреждение, принятие ответа")
+Rel(sms_gateway, customer, "Передача смс клиенту")
+Rel(cbs, event_system, "Подписка на событие подтверждения открытия депозита ")
+Rel(backoffice, cbs, "Проводит открытие депозита в системе (на этапе MVP)")
+Rel(backoffice, rate_system, "Сотрудники бек-офиса заводят в системе актуальные общие и персональные ставки")
+Rel(internet_bank, auth_provider, "Аутентификация пользователей в системе")
+
+@enduml

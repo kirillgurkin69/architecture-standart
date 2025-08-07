@@ -1,0 +1,53 @@
+@startuml
+title  Core Banking System Container Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(backoffice_debit, "Сотрудник бэк-офиса (депозиты)", "Обрабатывает заявки и подтверждает депозиты")
+Person(backoffice_credit, "Сотрудник бэк-офиса (кредиты)", "Обрабатывает данные по кредитам")
+System(event_system, "Система управления событиями", "Java Spring + Kafka")
+
+Container_Boundary(cbs, "Автоматизированная банковская система") {
+  Container(delphi_client, "Десктопный клиент", "Delphi", "Интерфейс работы сотрудников с банковскими продуктами")
+  ContainerDb(oracle_db, "База данных", "Oracle", "Централизованное хранилище данных. Доступ ограничен по ролям")
+  ' Модули PL/SQL
+  Container_Boundary(plsql, "PL/SQL Модули") {
+
+    Container(deposit_module, "Модуль депозитов", "PL/SQL", "Обработка вкладов, начисление процентов, пролонгация, закрытие счетов")
+
+    Container(credit_module, "Модуль кредитов", "PL/SQL", "Обработка заявок на кредиты, расчёт графиков платежей, ведение задолженности")
+
+    Container(auth_module, "Модуль авторизации", "PL/SQL", "Управление пользователями, ролями, правами доступа")
+
+    Container(audit_module, "Модуль аудита", "PL/SQL", "Журналирование операций и действий пользователей")
+
+    Container(integration_module, "Модуль интеграции", "PL/SQL", "Приём заявок от внешних систем, очереди обработки, статусные уведомления")
+
+  }
+  ' Пользователи используют клиент
+Rel(backoffice_debit, delphi_client, "Работает через", "TCP/IP")
+Rel(backoffice_credit, delphi_client, "Работает через", "TCP/IP")
+
+' Клиент вызывает модули
+Rel(delphi_client, auth_module, "Аутентификация и получение ролей")
+Rel(delphi_client, deposit_module, "Работа с депозитами", "PL/SQL")
+Rel(delphi_client, credit_module, "Работа с кредитами", "PL/SQL")
+Rel(delphi_client, audit_module, "Фиксация действий")
+
+' Модули взаимодействуют с БД
+Rel(deposit_module, oracle_db, "Чтение/запись данных по вкладам")
+Rel(credit_module, oracle_db, "Чтение/запись данных по кредитам")
+Rel(auth_module, oracle_db, "Управление пользователями и правами")
+Rel(audit_module, oracle_db, "Хранение логов и аудита")
+Rel(integration_module, oracle_db, "Хранение входящих заявок")
+
+' Интеграция с внешней системой
+Rel(event_system, integration_module, "Передаёт заявки на депозиты", "Kafka Connect (Oracle Sink connector)")
+
+' Клиент читает заявки
+Rel_Back(delphi_client, integration_module, "Получает заявки на открытие депозитов")
+}
+
+@enduml

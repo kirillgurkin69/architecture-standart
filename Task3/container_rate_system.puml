@@ -1,0 +1,33 @@
+@startuml
+title  Rate System Container Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(backoffice, "Сотрудник бэк-офиса", "Обрабатывает заявки и подтверждает депозиты")
+
+System(web_site, "Сайт банка", "PHP + React.js")
+System(internet_bank, "Интернет банк", "Клиент-серверная система на веб-фреймворке ASP.NET")
+
+Container_Boundary(rate_system, "Система ведения ставок") {
+  Container(api_gateway, "API Gateway", "Kong / Spring Cloud Gateway / NGINX", "Маршрутизирует запросы, управляет безопасностью, балансировкой и логированием")
+  Container(rate_ui, "Rate UI", "React.js", "Веб-интерфейс для сотрудников бэк-офиса, отображает и управляет ставками")
+  Container(rate_mgmt_service, "Rate Management Service", "Java Spring Boot", "Обрабатывает бизнес-логику управления общими и персональными ставками")
+  Container(rate_public_api, "Rate Public API", "Java Spring Boot + OpenAPI", "Предоставляет ставки другим системам через стандартизированный REST API")
+  ContainerDb(rate_db, "Rate DB", "PostgreSQL", "Хранит данные об общих и персональных ставках")
+}
+
+' Внутренние связи
+Rel(backoffice, rate_ui, "Работает через", "HTTPS")
+Rel(rate_ui, api_gateway, "Вызывает API", "HTTPS/REST")
+Rel(rate_mgmt_service, rate_db, "Читает/записывает", "JDBC")
+Rel(rate_public_api, rate_db, "Читает", "JDBC (read-only)")
+
+' Внешние запросы через API Gateway
+Rel(web_site, api_gateway, "Запрашивает ставки", "HTTPS/REST")
+Rel(internet_bank, api_gateway, "Запрашивает ставки", "HTTPS/REST")
+Rel(api_gateway, rate_public_api, "Маршрутизирует запросы", "HTTPS/REST")
+Rel(api_gateway, rate_mgmt_service, "Вызывает API", "HTTPS/REST")
+
+@enduml

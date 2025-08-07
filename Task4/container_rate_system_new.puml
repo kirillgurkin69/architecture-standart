@@ -1,0 +1,48 @@
+@startuml
+title  Rate System Container Diagram
+
+top to bottom direction
+
+!includeurl https://raw.githubusercontent.com/RicardoNiepel/C4-PlantUML/master/C4_Component.puml
+
+Person(backoffice, "Сотрудник бэк-офиса", "Обрабатывает заявки и подтверждает депозиты")
+
+System(web_site, "Сайт банка", "PHP + React.js")
+System(internet_bank, "Интернет банк", "Клиент-серверная система на веб-фреймворке ASP.NET")
+System(event_system, "Система управления событиями", "Java Spring + Kafka")
+System_Ext(call_center_ext, "Кол-центра партнера")
+System_Ext(smtp_server, "SMTP-сервер", "Почтовый сервер для отправки писем")
+
+Container_Boundary(rate_system, "Система ведения ставок") {
+  Container(api_gateway, "API Gateway", "Kong / Spring Cloud Gateway / NGINX", "Маршрутизирует запросы, управляет безопасностью, балансировкой и логированием")
+  Container(rate_ui, "Rate UI", "React.js", "Веб-интерфейс для сотрудников бэк-офиса, отображает и управляет ставками")
+  Container(rate_mgmt_service, "Rate Management Service", "Java Spring Boot", "Обрабатывает бизнес-логику управления общими и персональными ставками")
+  Container(rate_public_api, "Rate Public API", "Java Spring Boot + OpenAPI", "Предоставляет ставки другим системам через стандартизированный REST API")
+  Container(rate_event_publisher, "Rate Event Publisher", "Java Spring Boot + Kafka client", "Публикует события об изменении ставок в систему управления событиями (Kafka)")
+  Container(rate_exporter, "Rate Exporter", "Java Spring Boot + Scheduler", "Периодически формирует Excel и CSV файлы с актуальными ставками и отправляет их по e-mail")
+  ContainerDb(rate_db, "Rate DB", "PostgreSQL", "Хранит данные об общих и персональных ставках")
+}
+
+' Пользовательский интерфейс и API
+Rel(backoffice, rate_ui, "Работает через", "HTTPS")
+Rel(rate_ui, api_gateway, "Вызывает API", "HTTPS/REST")
+Rel(api_gateway, rate_mgmt_service, "Маршрутизирует к", "HTTPS/REST")
+Rel(api_gateway, rate_public_api, "Маршрутизирует к", "HTTPS/REST")
+
+' Доступ к данным
+Rel(rate_mgmt_service, rate_db, "Читает/записывает", "JDBC")
+Rel(rate_public_api, rate_db, "Читает", "JDBC (read-only)")
+
+' Интеграции: события и экспорт
+Rel(rate_mgmt_service, rate_event_publisher, "Вызывает при изменении ставок", "Internal Call")
+Rel(rate_event_publisher, event_system, "Публикует события", "Kafka")
+
+Rel(rate_exporter, rate_db, "Читает ставки для экспорта", "JDBC")
+Rel(rate_exporter, smtp_server, "Отправляет Excel и CSV по e-mail", "SMTP")
+Rel(smtp_server, call_center_ext, "Доставляет e-mail со ставками", "E-mail")
+
+' Внешние системы через API Gateway
+Rel(web_site, api_gateway, "Запрашивает ставки", "HTTPS/REST")
+Rel(internet_bank, api_gateway, "Запрашивает ставки", "HTTPS/REST")
+
+@enduml
